@@ -176,7 +176,8 @@ details summary{cursor:pointer;font-size:12px;color:var(--muted)}
           <label id="urlLbl" hidden>Ollama address<input type="text" id="f_url" value="http://localhost:11434" style="text-transform:none"></label>
           <label>Model<select id="f_model" style="text-transform:none"></select></label>
         </div>
-        <div class="row"><button class="primary" id="keySave">Save and test</button><button class="ghost" id="keyForget">Forget key</button></div>
+        <div class="row"><button class="primary" id="keySave">Save and test</button><button id="shareLink" hidden>Copy setup link for colleagues</button><button class="ghost" id="keyForget">Forget key</button></div>
+        <div id="shareBox" hidden><p class="hint">Send this link only to people you trust. Opening it sets up the AI in their browser automatically.</p><input type="text" id="shareUrl" readonly style="text-transform:none"></div>
         <p class="msg" id="keyMsg"></p>
       </section>
   </div>
@@ -570,7 +571,31 @@ $("keySave").onclick=async()=>{
 };
 $("keyForget").onclick=()=>{delete AI.keys[AI.prov];saveAI();$("f_key").value="";READY=false;setStatus(false,"Add your "+cur().name+" key below");msg("keyMsg","Key removed from this browser.")};
 showProv();
-if(!cur().key||KEYOF())testAI(true);else setStatus(false,"Choose an AI and add a free key below");
+/* ---- one-click setup link ---- */
+const b64u={enc:s=>btoa(unescape(encodeURIComponent(s))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""),
+  dec:s=>decodeURIComponent(escape(atob(s.replace(/-/g,"+").replace(/_/g,"/"))))};
+function setupLink(){
+  const data={p:AI.prov,k:KEYOF(),m:MODELOF(),u:AI.prov==="ollama"?AI.url:undefined};
+  return location.origin+location.pathname+"#setup-"+b64u.enc(JSON.stringify(data));
+}
+const _setStatus=setStatus;
+setStatus=function(ok,text){_setStatus(ok,text);$("shareLink").hidden=!ok;if(!ok)$("shareBox").hidden=true};
+$("shareLink").onclick=()=>{
+  const url=setupLink();$("shareUrl").value=url;$("shareBox").hidden=false;$("shareUrl").select();
+  navigator.clipboard.writeText(url).then(()=>toast("Setup link copied. Send it to your colleagues.")).catch(()=>toast("Select the link and copy it"));
+};
+const FROM_LINK=(function readSetupLink(){
+  const h=location.hash||"";if(!h.startsWith("#setup-"))return false;
+  try{
+    const d=JSON.parse(b64u.dec(h.slice(7)));
+    if(!PROV[d.p])throw 0;
+    AI.prov=d.p;if(d.k)AI.keys[d.p]=d.k;if(d.m)AI.models[d.p]=d.m;if(d.u)AI.url=d.u;saveAI();
+    history.replaceState(null,"",location.pathname+location.search);
+    showProv();msg("keyMsg","AI set up from the link. Checking…");testAI(false);toast("AI set up automatically");return true;
+  }catch(e){msg("keyMsg","That setup link is damaged. Ask for a new one.","err");return false}
+})();
+
+if(!FROM_LINK){if(!cur().key||KEYOF())testAI(true);else setStatus(false,"Choose an AI and add a free key below");}
 
 function errText(e){
   const c=e?.code||"", m=(e?.message||"").toString().slice(0,220), n=cur().name;
