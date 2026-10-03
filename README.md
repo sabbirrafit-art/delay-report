@@ -1,5 +1,10 @@
-# Technical Delay Report Builder
+# ATL Report Builder
 
-Web app that reads ATL (Aircraft Technical Log) page photos with AI and builds a Technical Delay Report as a Word file.
+Web app for aircraft maintenance engineers. Upload an ATL (Aircraft Technical Log) page photo and an AI (OpenRouter, Groq, Gemini or Ollama) reads it and writes:
+
+- **Technical Delay Report** (US-Bangla format)
+- **Occurrence Report**: US-Bangla USBA/QA/057 or Air Astra AA-QA-011
+
+Everything downloads as a Word file in the airline form layout.
 
 Open it at https://sabbirrafit-art.github.io/delay-report
